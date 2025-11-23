@@ -4,6 +4,9 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Admin Buku Tamu</title>
+    <!-- Tambahkan SDK Firebase -->
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore.js"></script>
     <style>
         body {
             font-family: Arial, sans-serif;
@@ -25,7 +28,7 @@
         .message {
             border-bottom: 1px solid #eee;
             padding: 10px 0;
-            page-break-inside: avoid; /* Untuk cetak, hindari pemotongan pesan */
+            page-break-inside: avoid;
         }
         .message:last-child {
             border-bottom: none;
@@ -43,7 +46,7 @@
             background: #0056b3;
         }
         .delete-btn {
-            background: #dc3545; /* Warna merah untuk delete */
+            background: #dc3545;
             margin-left: 10px;
         }
         .delete-btn:hover {
@@ -54,7 +57,7 @@
                 background: white;
             }
             button {
-                display: none; /* Sembunyikan tombol saat cetak */
+                display: none;
             }
         }
     </style>
@@ -68,38 +71,54 @@
     <button onclick="window.print()">Cetak Daftar Tamu</button>
 
     <script>
-        const messagesDiv = document.getElementById('messages');
-        let messages = JSON.parse(localStorage.getItem('guestMessages')) || [];
+        // Inisialisasi Firebase (ganti dengan config Anda)
+        const firebaseConfig = {
+            apiKey: "your-api-key",
+            authDomain: "your-project.firebaseapp.com",
+            projectId: "your-project-id",
+            storageBucket: "your-project.appspot.com",
+            messagingSenderId: "your-sender-id",
+            appId: "your-app-id"
+        };
+        firebase.initializeApp(firebaseConfig);
+        const db = firebase.firestore();
 
-        // Fungsi untuk menampilkan pesan
+        const messagesDiv = document.getElementById('messages');
+
+        // Fungsi untuk menampilkan pesan dari Firestore
         function displayMessages() {
             messagesDiv.innerHTML = '<h2>Daftar Pesan Tamu</h2>';
-            if (messages.length === 0) {
-                messagesDiv.innerHTML += '<p>Belum ada pesan tamu.</p>';
-                return;
-            }
-            messages.forEach((msg, index) => {
-                const msgDiv = document.createElement('div');
-                msgDiv.className = 'message';
-                msgDiv.innerHTML = `
-                    <strong>No. ${index + 1}</strong><br>
-                    <strong>Nama:</strong> ${msg.name}<br>
-                    <strong>Tanggal:</strong> ${new Date(msg.date).toLocaleString()}<br>
-                    <strong>Pesan:</strong> ${msg.message}<br>
-                    <button class="delete-btn" onclick="deleteMessage(${index})">Hapus</button>
-                    <hr>
-                `;
-                messagesDiv.appendChild(msgDiv);
+            db.collection('guestMessages').orderBy('date', 'desc').onSnapshot((snapshot) => {
+                messagesDiv.innerHTML = '<h2>Daftar Pesan Tamu</h2>';
+                if (snapshot.empty) {
+                    messagesDiv.innerHTML += '<p>Belum ada pesan tamu.</p>';
+                    return;
+                }
+                snapshot.forEach((doc, index) => {
+                    const msg = doc.data();
+                    const msgDiv = document.createElement('div');
+                    msgDiv.className = 'message';
+                    msgDiv.innerHTML = `
+                        <strong>No. ${index + 1}</strong><br>
+                        <strong>Nama:</strong> ${msg.name}<br>
+                        <strong>Tanggal:</strong> ${new Date(msg.date.seconds * 1000).toLocaleString()}<br>
+                        <strong>Pesan:</strong> ${msg.message}<br>
+                        <button class="delete-btn" onclick="deleteMessage('${doc.id}')">Hapus</button>
+                        <hr>
+                    `;
+                    messagesDiv.appendChild(msgDiv);
+                });
             });
         }
 
-        // Fungsi untuk menghapus pesan berdasarkan index
-        function deleteMessage(index) {
+        // Fungsi untuk menghapus pesan dari Firestore
+        function deleteMessage(id) {
             if (confirm('Apakah Anda yakin ingin menghapus pesan ini?')) {
-                messages.splice(index, 1); // Hapus dari array
-                localStorage.setItem('guestMessages', JSON.stringify(messages)); // Simpan ulang
-                displayMessages(); // Reload tampilan
-                alert('Pesan berhasil dihapus!');
+                db.collection('guestMessages').doc(id).delete().then(() => {
+                    alert('Pesan berhasil dihapus!');
+                }).catch((error) => {
+                    console.error('Error deleting message:', error);
+                });
             }
         }
 
