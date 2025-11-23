@@ -42,6 +42,13 @@
         button:hover {
             background: #0056b3;
         }
+        .delete-btn {
+            background: #dc3545; /* Warna merah untuk delete */
+            margin-left: 10px;
+        }
+        .delete-btn:hover {
+            background: #c82333;
+        }
         @media print {
             body {
                 background: white;
@@ -79,10 +86,21 @@
                     <strong>Nama:</strong> ${msg.name}<br>
                     <strong>Tanggal:</strong> ${new Date(msg.date).toLocaleString()}<br>
                     <strong>Pesan:</strong> ${msg.message}<br>
+                    <button class="delete-btn" onclick="deleteMessage(${index})">Hapus</button>
                     <hr>
                 `;
                 messagesDiv.appendChild(msgDiv);
             });
+        }
+
+        // Fungsi untuk menghapus pesan berdasarkan index
+        function deleteMessage(index) {
+            if (confirm('Apakah Anda yakin ingin menghapus pesan ini?')) {
+                messages.splice(index, 1); // Hapus dari array
+                localStorage.setItem('guestMessages', JSON.stringify(messages)); // Simpan ulang
+                displayMessages(); // Reload tampilan
+                alert('Pesan berhasil dihapus!');
+            }
         }
 
         // Tampilkan pesan saat halaman dimuat
